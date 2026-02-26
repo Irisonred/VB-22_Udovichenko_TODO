@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TODO лист</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #fafafa;
+      color: #333;
+      line-height: 1.6;
+      padding: 32px 16px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 500;
+      font-size: 28px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      outline: none;
+      max-width: calc(100% - 100px);
+    }
+
+    input[type="text"]:focus {
+      border-color: #999;
+    }
+
+    button {
+      padding: 12px 16px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .select-all {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+
+    .tab {
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      background: #f0f0f0;
+    }
+
+    .tab.active {
+      background: #333;
+      color: white;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+
+    li input[type="checkbox"] {
+      margin-right: 12px;
+      transform: scale(1.2);
+    }
+
+    .task-text {
+      flex: 1;
+      padding-right: 12px;
+      cursor: pointer;
+      min-height: 20px;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-delete {
+      background-color: #f44336;
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    .btn-delete:hover {
+      background-color: #d32f2f;
+    }
+
+    .clear-completed {
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .pagination button {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Мой TODO-лист</h1>
+
+    <div class="input-group">
+      <input type="text" id="taskInput" placeholder="Введите задачу (до 250 символов)..." maxlength="250" />
+      <button id="addBtn">Добавить</button>
+    </div>
+
+    <div class="controls">
+      <div class="select-all">
+        <input type="checkbox" id="selectAllCheckbox" />
+        <label for="selectAllCheckbox">Выбрать все</label>
+      </div>
+      <button id="clearCompletedBtn" class="clear-completed" style="width: auto; padding: 6px 12px; font-size: 14px;">
+        Удалить выполненные
+      </button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-filter="all">Все (<span id="count-all">0</span>)</div>
+      <div class="tab" data-filter="active">Активные (<span id="count-active">0</span>)</div>
+      <div class="tab" data-filter="completed">Завершённые (<span id="count-completed">0</span>)</div>
+    </div>
+
+    <ul id="taskList"></ul>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <script>
+    const taskInput = document.getElementById('taskInput');
+    const addBtn = document.getElementById('addBtn');
+    const taskList = document.getElementById('taskList');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+    const tabs = document.querySelectorAll('.tab');
+    const paginationEl = document.getElementById('pagination');
+
+    let tasks = [];
+    let currentFilter = 'all';
+    const TASKS_PER_PAGE = 5;
+    let currentPage = 1;
+
+    function syncSelectAllCheckbox() {
+      const filteredTasks = getFilteredTasks();
+      
+      if (filteredTasks.length === 0) {
+        selectAllCheckbox.checked = false;
+        return;
+      }
+      
+      const allCompleted = filteredTasks.every(task => task.completed);
+      selectAllCheckbox.checked = allCompleted;
+    }
+
+    function updateCounts() {
+      const allCount = tasks.length;
+      const activeCount = tasks.filter(t => !t.completed).length;
+      const completedCount = tasks.filter(t => t.completed).length;
+
+      document.getElementById('count-all').textContent = allCount;
+      document.getElementById('count-active').textContent = activeCount;
+      document.getElementById('count-completed').textContent = completedCount;
+    }
+
+    function getFilteredTasks() {
+      if (currentFilter === 'active') return tasks.filter(t => !t.completed);
+      if (currentFilter === 'completed') return tasks.filter(t => t.completed);
+      return [...tasks];
+    }
+
+    function renderPagination(totalItems) {
+      paginationEl.innerHTML = '';
+      const totalPages = Math.ceil(totalItems / TASKS_PER_PAGE);
+      if (totalPages <= 1) return;
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.style.backgroundColor = i === currentPage ? '#333' : '#ddd';
+        btn.onclick = () => {
+          currentPage = i;
+          printTasks();
+        };
+        paginationEl.appendChild(btn);
+      }
+    }
+
+    function printTasks() {
+      const filtered = getFilteredTasks();
+      const start = (currentPage - 1) * TASKS_PER_PAGE;
+      const paginated = filtered.slice(start, start + TASKS_PER_PAGE);
+
+      taskList.innerHTML = '';
+      paginated.forEach((task, index) => {
+        const originalIndex = tasks.findIndex(t => t.id === task.id);
+
+        const li = document.createElement('li');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.completed;
+        checkbox.onchange = () => {
+          tasks[originalIndex].completed = checkbox.checked;
+          syncSelectAllCheckbox(); 
+          updateCounts();
+          printTasks();
+        };
+
+        const taskText = document.createElement('span');
+        taskText.className = 'task-text';
+        taskText.innerHTML = task.text; // XSS 
+        
+        if (task.completed) {
+          taskText.style.textDecoration = 'line-through';
+          taskText.style.color = '#888';
+        }
+
+        taskText.contentEditable = false;
+        taskText.onclick = () => {
+          const originalText = task.text;
+          taskText.contentEditable = true;
+          taskText.focus();
+          const range = document.createRange();
+          range.selectNodeContents(taskText);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+
+          const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+              taskText.textContent = originalText;
+              taskText.contentEditable = false;
+              tasks[originalIndex].text = originalText;
+              document.removeEventListener('keydown', onKeyDown);
+            } else if (e.key === 'Enter') {
+              e.preventDefault();
+              const newText = taskText.textContent.trim();
+              if (newText === '') {
+                taskText.textContent = originalText;
+              } else {
+                tasks[originalIndex].text = newText;
+              }
+              taskText.contentEditable = false;
+              document.removeEventListener('keydown', onKeyDown);
+            }
+          };
+          document.addEventListener('keydown', onKeyDown);
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Удалить';
+        deleteBtn.className = 'btn-delete';
+        deleteBtn.onclick = () => {
+          tasks.splice(originalIndex, 1);
+          syncSelectAllCheckbox(); 
+          updateCounts();
+          currentPage = 1;
+          printTasks();
+        };
+
+        const actions = document.createElement('div');
+        actions.className = 'task-actions';
+        actions.appendChild(deleteBtn);
+
+        li.appendChild(checkbox);
+        li.appendChild(taskText);
+        li.appendChild(actions);
+        taskList.appendChild(li);
+      });
+
+      syncSelectAllCheckbox();
+      updateCounts();
+      renderPagination(filtered.length);
+    }
+
+    function addTask() {
+      const text = taskInput.value.trim();
+      if (text === '') return;
+      const newTask = {
+        id: Date.now(),
+        text: text,
+        completed: false
+      };
+      tasks.unshift(newTask);
+      taskInput.value = '';
+      taskInput.focus();
+      currentPage = 1;
+      printTasks();
+    }
+
+    addBtn.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTask();
+    });
+
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        taskInput.value = '';
+        taskInput.blur();
+      }
+    });
+
+    selectAllCheckbox.addEventListener('change', () => {
+      const checked = selectAllCheckbox.checked;
+      const filteredTasks = getFilteredTasks();
+      
+      filteredTasks.forEach(task => {
+        const index = tasks.findIndex(t => t.id === task.id);
+        if (index !== -1) {
+          tasks[index].completed = checked;
+        }
+      });
+      
+      printTasks();
+    });
+
+    clearCompletedBtn.addEventListener('click', () => {
+      tasks = tasks.filter(task => !task.completed);
+      currentPage = 1;
+      printTasks();
+    });
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        currentPage = 1;
+        printTasks();
+      });
+    });
+
+    updateCounts();
+  </script>
+</body>
+</html>
