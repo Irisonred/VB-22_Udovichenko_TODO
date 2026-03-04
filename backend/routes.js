@@ -34,9 +34,9 @@ router.post("/", (req, res) => {
   const { text, completed } = req.body;
   const completedValue = completed ? 1 : 0;
   
-  const query = `INSERT INTO tasks (text, completed) VALUES ('${text}', ${completedValue})`;
+  const query = `INSERT INTO tasks (text, completed) VALUES (?, ?)`;
   
-  db.run(query, function (err) {
+  db.run(query, [text, completedValue], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -56,23 +56,28 @@ router.patch("/:id", (req, res) => {
   const { text, completed } = req.body;
   
   let updates = [];
+  let params = [];
   
   if (text !== undefined) {
-    updates.push(`text = '${text}'`);
+    updates.push("text = ?");
+    params.push(text);
   }
   
   if (completed !== undefined) {
     const val = completed ? 1 : 0;
-    updates.push(`completed = ${val}`);
+    updates.push("completed = ?");
+    params.push(val);
   }
   
   if (updates.length === 0) {
     return res.status(400).json({ error: "Нет данных для обновления" });
   }
   
-  const query = `UPDATE tasks SET ${updates.join(", ")} WHERE id = ${id}`;
+  params.push(id);
   
-  db.run(query, function (err) {
+  const query = `UPDATE tasks SET ${updates.join(", ")} WHERE id = ?`;
+  
+  db.run(query, params, function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -92,9 +97,10 @@ router.patch("/:id", (req, res) => {
 
 router.delete("/:id", (req, res) => {
   const id = req.params.id;
-  const query = `DELETE FROM tasks WHERE id = ${id}`;
   
-  db.run(query, function (err) {
+  const query = `DELETE FROM tasks WHERE id = ?`;
+  
+  db.run(query, [id], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -112,9 +118,9 @@ router.delete("/:id", (req, res) => {
 });
 
 router.delete("/completed", (req, res) => {
-  const query = `DELETE FROM tasks WHERE completed = 1`;
+  const query = `DELETE FROM tasks WHERE completed = ?`;
   
-  db.run(query, function (err) {
+  db.run(query, [1], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }

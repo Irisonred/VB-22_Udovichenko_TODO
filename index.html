@@ -298,7 +298,7 @@
 
         const taskText = document.createElement('span');
         taskText.className = 'task-text';
-        taskText.innerHTML = task.text;
+        taskText.textContent = task.text;
         
         if (task.completed) {
           taskText.style.textDecoration = 'line-through';
