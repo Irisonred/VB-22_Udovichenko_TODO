@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("./db");
 
+// GET /tasks
 router.get("/", (req, res) => {
   const { filter, page, limit } = req.query;
   
@@ -25,13 +26,15 @@ router.get("/", (req, res) => {
       return res.status(500).json({ error: err.message });
     }
     const tasks = rows.map(task => ({
-      ...task,
+      id: task.id,
+      text: task.text,
       completed: task.completed === 1
     }));
     res.json(tasks);
   });
 });
 
+// POST /tasks
 router.post("/", (req, res) => {
   const { text, completed } = req.body;
   const completedValue = completed ? 1 : 0;
@@ -51,6 +54,7 @@ router.post("/", (req, res) => {
   });
 });
 
+// PATCH /tasks/:id
 router.patch("/:id", (req, res) => {
   const id = req.params.id;
   const { text, completed } = req.body;
@@ -84,6 +88,7 @@ router.patch("/:id", (req, res) => {
   });
 });
 
+// DELETE /tasks/:id
 router.delete("/:id", (req, res) => {
   const id = req.params.id;
   const query = `DELETE FROM tasks WHERE id = ${id}`;
@@ -103,6 +108,7 @@ router.delete("/:id", (req, res) => {
   });
 });
 
+// DELETE /tasks/completed
 router.delete("/completed", (req, res) => {
   const query = `DELETE FROM tasks WHERE completed = 1`;
   
