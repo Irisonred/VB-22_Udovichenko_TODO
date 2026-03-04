@@ -51,7 +51,7 @@ router.post("/", (req, res) => {
   });
 });
 
-router.patch("/tasks/:id", (req, res) => {
+router.patch("/:id", (req, res) => {
   const id = req.params.id;
   const { text, completed } = req.body;
   
@@ -84,7 +84,7 @@ router.patch("/tasks/:id", (req, res) => {
   });
 });
 
-router.delete("/tasks/:id", (req, res) => {
+router.delete("/:id", (req, res) => {
   const id = req.params.id;
   const query = `DELETE FROM tasks WHERE id = ${id}`;
   
@@ -103,7 +103,7 @@ router.delete("/tasks/:id", (req, res) => {
   });
 });
 
-router.delete("/tasks/completed", (req, res) => {
+router.delete("/completed", (req, res) => {
   const query = `DELETE FROM tasks WHERE completed = 1`;
   
   db.run(query, function (err) {
