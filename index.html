@@ -188,10 +188,10 @@
 
     <div class="pagination" id="pagination"></div>
   </div>
-
+  
   <script>
     const API_URL = "http://localhost:3000/tasks";
-    
+
     const taskInput = document.getElementById('taskInput');
     const addBtn = document.getElementById('addBtn');
     const taskList = document.getElementById('taskList');
@@ -207,13 +207,7 @@
 
     async function loadTasks() {
       try {
-        const params = new URLSearchParams({
-          filter: currentFilter,
-          page: currentPage,
-          limit: TASKS_PER_PAGE
-        });
-        
-        const response = await fetch(`${API_URL}?${params}`);
+        const response = await fetch(`${API_URL}`);
         tasks = await response.json();
         printTasks();
       } catch (err) {
@@ -251,17 +245,28 @@
 
     function renderPagination(totalItems) {
       paginationEl.innerHTML = '';
+      
       const totalPages = Math.ceil(totalItems / TASKS_PER_PAGE);
-      if (totalPages <= 1) return;
+      
+      if (totalPages <= 1) {
+        return;
+      }
 
       for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement('button');
         btn.textContent = i;
-        btn.style.backgroundColor = i === currentPage ? '#333' : '#ddd';
+        btn.style.backgroundColor = i === currentPage ? '#333' : '#f0f0f0';
+        btn.style.border = 'none';
+        btn.style.padding = '6px 12px';
+        btn.style.margin = '0 4px';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        
         btn.onclick = () => {
           currentPage = i;
-          loadTasks();
+          printTasks();
         };
+        
         paginationEl.appendChild(btn);
       }
     }
@@ -293,7 +298,7 @@
 
         const taskText = document.createElement('span');
         taskText.className = 'task-text';
-        taskText.innerHTML = task.text; // XSS уязвимость (намеренно!)
+        taskText.innerHTML = task.text;
         
         if (task.completed) {
           taskText.style.textDecoration = 'line-through';

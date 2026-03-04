@@ -2,9 +2,8 @@ const express = require("express");
 const router = express.Router();
 const db = require("./db");
 
-// GET /tasks
 router.get("/", (req, res) => {
-  const { filter, page, limit } = req.query;
+  const { filter } = req.query;
   
   let query = "SELECT * FROM tasks";
   
@@ -16,34 +15,32 @@ router.get("/", (req, res) => {
   
   query += " ORDER BY id DESC";
   
-  if (page && limit) {
-    const offset = (page - 1) * limit;
-    query += ` LIMIT ${limit} OFFSET ${offset}`;
-  }
-  
   db.all(query, [], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    
     const tasks = rows.map(task => ({
       id: task.id,
       text: task.text,
       completed: task.completed === 1
     }));
+    
     res.json(tasks);
   });
 });
 
-// POST /tasks
 router.post("/", (req, res) => {
   const { text, completed } = req.body;
   const completedValue = completed ? 1 : 0;
+  
   const query = `INSERT INTO tasks (text, completed) VALUES ('${text}', ${completedValue})`;
   
   db.run(query, function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    
     res.json({
       status: "ok",
       message: "Задача добавлена",
@@ -54,13 +51,16 @@ router.post("/", (req, res) => {
   });
 });
 
-// PATCH /tasks/:id
 router.patch("/:id", (req, res) => {
   const id = req.params.id;
   const { text, completed } = req.body;
   
   let updates = [];
-  if (text !== undefined) updates.push(`text = '${text}'`);
+  
+  if (text !== undefined) {
+    updates.push(`text = '${text}'`);
+  }
+  
   if (completed !== undefined) {
     const val = completed ? 1 : 0;
     updates.push(`completed = ${val}`);
@@ -76,9 +76,11 @@ router.patch("/:id", (req, res) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    
     if (this.changes === 0) {
       return res.status(404).json({ error: "Задача не найдена" });
     }
+    
     res.json({
       status: "ok",
       message: "Задача обновлена",
@@ -88,7 +90,6 @@ router.patch("/:id", (req, res) => {
   });
 });
 
-// DELETE /tasks/:id
 router.delete("/:id", (req, res) => {
   const id = req.params.id;
   const query = `DELETE FROM tasks WHERE id = ${id}`;
@@ -97,9 +98,11 @@ router.delete("/:id", (req, res) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    
     if (this.changes === 0) {
       return res.status(404).json({ error: "Задача не найдена" });
     }
+    
     res.json({
       status: "ok",
       message: "Задача удалена",
@@ -108,7 +111,6 @@ router.delete("/:id", (req, res) => {
   });
 });
 
-// DELETE /tasks/completed
 router.delete("/completed", (req, res) => {
   const query = `DELETE FROM tasks WHERE completed = 1`;
   
@@ -116,6 +118,7 @@ router.delete("/completed", (req, res) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    
     res.json({
       status: "ok",
       message: `Удалено задач: ${this.changes}`,
