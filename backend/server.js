@@ -1,6 +1,5 @@
 const express = require("express");
 const routes = require("./routes");
-
 const app = express();
 const PORT = 3000;
 
@@ -10,21 +9,21 @@ app.use(express.urlencoded({ extended: true, limit: '2kb' }));
 const rateLimit = {};
 app.use((req, res, next) => {
   const ip = req.ip;
-  const now = Date.now();
-  const windowMs = 60000;
+  const nowTime = Date.now();
+  const queryTime = 60000;
   const maxRequests = 50;
   
   if (!rateLimit[ip]) {
     rateLimit[ip] = [];
   }
   
-  rateLimit[ip] = rateLimit[ip].filter(time => now - time < windowMs);
+  rateLimit[ip] = rateLimit[ip].filter(time => nowTime - time < queryTime);
   
   if (rateLimit[ip].length >= maxRequests) {
-    return res.status(429).json({ error: "Too many requests. Try again later." });
+    return res.status(429).json({ error: "Слишком много запросов, подождите минуту" });
   }
   
-  rateLimit[ip].push(now);
+  rateLimit[ip].push(nowTime);
   next();
 });
 
@@ -49,7 +48,7 @@ app.use((req, res, next) => {
 app.use("/tasks", routes);
 
 app.get("/", (req, res) => {
-  res.json({ status: "TODO Backend работает!", endpoints: ["/tasks"] });
+  res.json({ status: "TODO Backend работает", endpoints: ["/tasks"] });
 });
 
 app.use((req, res) => {
