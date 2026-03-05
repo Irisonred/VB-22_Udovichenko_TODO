@@ -2,6 +2,18 @@ const express = require("express");
 const router = express.Router();
 const db = require("./db");
 
+function escapeSql(str) {
+  if (typeof str !== 'string') return str;
+  
+  return str
+    .replace(/'/g, "''")
+    .replace(/"/g, '\\"')
+    .replace(/;/g, '')
+    .replace(/--/g, '')
+    .replace(/\/\*/g, '')
+    .replace(/\*\//g, '');
+}
+
 router.get("/", (req, res) => {
   const { filter } = req.query;
   
@@ -34,9 +46,11 @@ router.post("/", (req, res) => {
   const { text, completed } = req.body;
   const completedValue = completed ? 1 : 0;
   
-  const query = `INSERT INTO tasks (text, completed) VALUES (?, ?)`;
+  const safeText = escapeSql(text);
   
-  db.run(query, [text, completedValue], function (err) {
+  const query = `INSERT INTO tasks (text, completed) VALUES ('${safeText}', ${completedValue})`;
+  
+  db.run(query, function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -56,28 +70,25 @@ router.patch("/:id", (req, res) => {
   const { text, completed } = req.body;
   
   let updates = [];
-  let params = [];
   
   if (text !== undefined) {
-    updates.push("text = ?");
-    params.push(text);
+    const safeText = escapeSql(text);
+    updates.push(`text = '${safeText}'`);
   }
   
   if (completed !== undefined) {
     const val = completed ? 1 : 0;
-    updates.push("completed = ?");
-    params.push(val);
+    updates.push(`completed = ${val}`);
   }
   
   if (updates.length === 0) {
     return res.status(400).json({ error: "Нет данных для обновления" });
   }
   
-  params.push(id);
+  const safeId = escapeSql(id);
+  const query = `UPDATE tasks SET ${updates.join(", ")} WHERE id = ${safeId}`;
   
-  const query = `UPDATE tasks SET ${updates.join(", ")} WHERE id = ?`;
-  
-  db.run(query, params, function (err) {
+  db.run(query, function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -98,9 +109,10 @@ router.patch("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
   const id = req.params.id;
   
-  const query = `DELETE FROM tasks WHERE id = ?`;
+  const safeId = escapeSql(id);
+  const query = `DELETE FROM tasks WHERE id = ${safeId}`;
   
-  db.run(query, [id], function (err) {
+  db.run(query, function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -118,9 +130,9 @@ router.delete("/:id", (req, res) => {
 });
 
 router.delete("/completed", (req, res) => {
-  const query = `DELETE FROM tasks WHERE completed = ?`;
+  const query = `DELETE FROM tasks WHERE completed = 1`;
   
-  db.run(query, [1], function (err) {
+  db.run(query, function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }

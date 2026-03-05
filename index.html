@@ -188,7 +188,7 @@
 
     <div class="pagination" id="pagination"></div>
   </div>
-  
+
   <script>
     const API_URL = "http://localhost:3000/tasks";
 
@@ -207,7 +207,11 @@
 
     async function loadTasks() {
       try {
-        const response = await fetch(`${API_URL}`);
+        const params = new URLSearchParams({
+          filter: currentFilter
+        });
+        
+        const response = await fetch(`${API_URL}?${params}`);
         tasks = await response.json();
         printTasks();
       } catch (err) {
@@ -383,6 +387,11 @@
     async function addTask() {
       const text = taskInput.value.trim();
       if (text === '') return;
+      
+      if (text.length > 250) {
+        alert("Задача слишком длинная! Максимум 250 символов.");
+        return;
+      }
       
       try {
         const response = await fetch(API_URL, {

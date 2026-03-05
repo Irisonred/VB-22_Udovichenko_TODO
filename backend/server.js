@@ -7,8 +7,26 @@ const PORT = 3000;
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const rateLimit = {};
+app.use((req, res, next) => {
+  const ip = req.ip;
+  const now = Date.now();
+  const windowMs = 60000;
+  const maxTasks = 15;
+  
+  if (!rateLimit[ip]) {
+    rateLimit[ip] = [];
+  }
+  
+  rateLimit[ip] = rateLimit[ip].filter(time => now - time < windowMs);
+  
+  if (rateLimit[ip].length >= maxTasks) {
+    return res.status(429).json({ error: "Too many requests. Try again later." });
+  }
+  
+  rateLimit[ip].push(now);
+  next();
+});
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -33,9 +51,9 @@ app.get("/", (req, res) => {
 });
 
 app.use((req, res) => {
-  res.status(404).json({ error: "Endpoint not found" }); //       <-------------- error 404
+  res.status(404).json({ error: "Endpoint not found" });
 });
 
 app.listen(PORT, () => {
-  console.log(`Сервер запущен: http://localhost:${PORT}`);
+  console.log(`🚀 Сервер запущен: http://localhost:${PORT}`);
 });
