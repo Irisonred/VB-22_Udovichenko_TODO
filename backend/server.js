@@ -9,7 +9,7 @@ app.use(express.urlencoded({ extended: true, limit: '2kb' }));
 const rateLimit = {};
 app.use((req, res, next) => {
   const ip = req.ip;
-  const nowTime = Date.now();
+  const now = Date.now();
   const queryTime = 60000;
   const maxRequests = 50;
   
@@ -17,13 +17,13 @@ app.use((req, res, next) => {
     rateLimit[ip] = [];
   }
   
-  rateLimit[ip] = rateLimit[ip].filter(time => nowTime - time < queryTime);
+  rateLimit[ip] = rateLimit[ip].filter(time => now - time < queryTime);
   
   if (rateLimit[ip].length >= maxRequests) {
     return res.status(429).json({ error: "Слишком много запросов, подождите минуту" });
   }
   
-  rateLimit[ip].push(nowTime);
+  rateLimit[ip].push(now);
   next();
 });
 
