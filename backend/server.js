@@ -4,8 +4,29 @@ const routes = require("./routes");
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '2kb' }));
+app.use(express.urlencoded({ extended: true, limit: '2kb' }));
+
+const rateLimit = {};
+app.use((req, res, next) => {
+  const ip = req.ip;
+  const now = Date.now();
+  const windowMs = 60000;
+  const maxRequests = 50;
+  
+  if (!rateLimit[ip]) {
+    rateLimit[ip] = [];
+  }
+  
+  rateLimit[ip] = rateLimit[ip].filter(time => now - time < windowMs);
+  
+  if (rateLimit[ip].length >= maxRequests) {
+    return res.status(429).json({ error: "Too many requests. Try again later." });
+  }
+  
+  rateLimit[ip].push(now);
+  next();
+});
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
