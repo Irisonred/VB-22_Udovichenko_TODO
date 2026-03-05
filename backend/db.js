@@ -4,7 +4,7 @@ const db = new sqlite3.Database("./tasks.db", (err) => {
   if (err) {
     console.error("Ошибка подключения к SQLite:", err.message);
   } else {
-    console.log("База данных SQLite успешно подключена");
+    console.log("База данных SQLite подключена");
   }
 });
 

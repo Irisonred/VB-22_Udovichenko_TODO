@@ -106,6 +106,22 @@ router.patch("/:id", (req, res) => {
   });
 });
 
+router.delete("/completed", (req, res) => {
+  const query = `DELETE FROM tasks WHERE completed = 1`;
+  
+  db.run(query, function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    res.json({
+      status: "ok",
+      message: `Удалено задач: ${this.changes}`,
+      deletedCount: this.changes
+    });
+  });
+});
+
 router.delete("/:id", (req, res) => {
   const id = req.params.id;
   
@@ -129,20 +145,6 @@ router.delete("/:id", (req, res) => {
   });
 });
 
-router.delete("/completed", (req, res) => {
-  const query = `DELETE FROM tasks WHERE completed = 1`;
-  
-  db.run(query, function (err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    res.json({
-      status: "ok",
-      message: `Удалено задач: ${this.changes}`,
-      deletedCount: this.changes
-    });
-  });
-});
+
 
 module.exports = router;
